@@ -7,8 +7,14 @@ import json
 
 from openai import OpenAI
 
-from fair_decision_lab.client import FairDecisionEnv
-from fair_decision_lab.models import FairAction
+# Fix imports for when running from HF Space
+try:
+    from fair_decision_lab.client import FairDecisionEnv
+    from fair_decision_lab.models import FairAction
+except ModuleNotFoundError:
+    # Running from HF Space where files are at root
+    from client import FairDecisionEnv
+    from models import FairAction
 
 # ---------------------------------------------------------------------------
 # Config - all from environment, exit clearly if missing
