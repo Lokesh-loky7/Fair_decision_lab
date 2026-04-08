@@ -1,0 +1,15 @@
+name: fair-decision-lab
+version: 0.1.0
+description: An RL environment for bias detection where an agent analyses synthetic dataset summaries and reasons about fairness across three difficulty levels.
+tags:
+  - openenv
+  - rl-environment
+action_schema: FairAction
+observation_schema: FairObservation
+tasks:
+  - id: easy
+    description: Detect obvious bias in a clearly imbalanced dataset.
+  - id: medium
+    description: Compute a fairness metric for an ambiguous dataset with a small group gap.
+  - id: hard
+    description: Multi-turn intersectional bias analysis and mitigation across two protected attributes.
