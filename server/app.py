@@ -21,3 +21,13 @@ app.router.routes = [r for r in app.router.routes if not (isinstance(r, APIRoute
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+def main():
+    """Entry point for running the server."""
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=7860)
+
+
+if __name__ == "__main__":
+    main()
