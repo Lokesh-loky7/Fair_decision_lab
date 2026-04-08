@@ -75,10 +75,13 @@ def _build_action(parsed: dict) -> FairAction:
 
 
 def run_episode(task_id: str, episode_num: int):
-    print("[START]", flush=True)
-    print(f"task_id: {task_id}", flush=True)
-    print(f"episode: {episode_num}", flush=True)
+    # Log START in required format
+    print(f"[START] task={task_id} env=fair-decision-lab model={MODEL_NAME}", flush=True)
 
+    rewards_list = []
+    steps = 0
+    success = False
+    
     try:
         with FairDecisionEnv(base_url=ENV_URL).sync() as env:
             reset_result = env.reset(task_id=task_id)
@@ -89,9 +92,7 @@ def run_episode(task_id: str, episode_num: int):
                 {"role": "user",    "content": f"Dataset summary:\n{obs.dataset_summary}"},
             ]
 
-            total_reward = 0.0
-            steps        = 0
-            done         = False
+            done = False
 
             while not done:
                 parsed = _call_llm(messages)
@@ -102,19 +103,19 @@ def run_episode(task_id: str, episode_num: int):
                     next_obs = result.observation
                     reward   = result.reward or 0.0
                     done     = result.done
+                    error    = None
                 except Exception as e:
-                    print(f"[ERROR] step failed: {e}", flush=True)
+                    error = str(e)
+                    print(f"[STEP] step={steps+1} action={action.analysis[:50]} reward=0.00 done=true error={error}", flush=True)
                     break
 
-                steps        += 1
-                total_reward += reward
-
-                print("[STEP]", flush=True)
-                print(f"step: {steps}", flush=True)
-                print(f"action: {action.analysis[:120]!r}", flush=True)
-                print(f"observation: {next_obs.feedback!r}", flush=True)
-                print(f"reward: {reward:.4f}", flush=True)
-                print(f"done: {done}", flush=True)
+                steps += 1
+                rewards_list.append(reward)
+                
+                # Log STEP in required format
+                action_str = action.analysis[:50].replace('\n', ' ')
+                done_str = str(done).lower()
+                print(f"[STEP] step={steps} action={action_str} reward={reward:.2f} done={done_str} error=null", flush=True)
 
                 messages.append({"role": "assistant", "content": json.dumps(parsed)})
                 if not done:
@@ -123,18 +124,22 @@ def run_episode(task_id: str, episode_num: int):
                         f"Dataset summary:\n{next_obs.dataset_summary}"
                     )})
 
-    except Exception as e:
-        print(f"[ERROR] episode failed: {e}", flush=True)
-        print("[END]", flush=True)
-        print("total_reward: 0.0000", flush=True)
-        print("steps: 0", flush=True)
-        print("")
-        return
+            # Calculate score (normalized to [0, 1])
+            total_reward = sum(rewards_list)
+            # For easy: max ~0.95, medium: ~0.70, hard: ~1.20 (3 turns * 0.40)
+            max_possible = 0.95 if task_id == "easy" else (0.70 if task_id == "medium" else 1.20)
+            score = min(total_reward / max_possible, 1.0) if max_possible > 0 else 0.0
+            success = score >= 0.5  # Success if score >= 50%
 
-    print("[END]", flush=True)
-    print(f"total_reward: {total_reward:.4f}", flush=True)
-    print(f"steps: {steps}", flush=True)
-    print("")  # REQUIRED - parser separator
+    except Exception as e:
+        print(f"[DEBUG] episode failed: {e}", flush=True)
+        score = 0.0
+        success = False
+
+    # Log END in required format
+    rewards_str = ",".join(f"{r:.2f}" for r in rewards_list)
+    success_str = str(success).lower()
+    print(f"[END] success={success_str} steps={steps} score={score:.3f} rewards={rewards_str}", flush=True)
 
 
 if __name__ == "__main__":
