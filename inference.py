@@ -27,10 +27,15 @@ def _require(name: str) -> str:
         sys.exit(1)
     return val
 
-HF_TOKEN     = _require("HF_TOKEN")
-API_BASE_URL = _require("API_BASE_URL")
-MODEL_NAME   = _require("MODEL_NAME")
-ENV_URL      = os.environ.get("ENV_URL", "http://localhost:7860")
+# HF_TOKEN is required (no default)
+HF_TOKEN = _require("HF_TOKEN")
+
+# API_BASE_URL and MODEL_NAME have defaults
+API_BASE_URL = os.getenv("API_BASE_URL", "https://router.huggingface.co/v1")
+MODEL_NAME = os.getenv("MODEL_NAME", "Qwen/Qwen2.5-72B-Instruct")
+
+# ENV_URL for connecting to the environment
+ENV_URL = os.environ.get("ENV_URL", "http://localhost:7860")
 
 client = OpenAI(api_key=HF_TOKEN, base_url=API_BASE_URL)
 
